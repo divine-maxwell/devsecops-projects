@@ -25,38 +25,48 @@ jobs:
       run:
         working-directory: 01-secure-ci-node
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: '01-secure-ci-node/package-lock.json'
-      - run: npm ci
-      - run: npm test
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run smoke test
+        run: npm test
 
   secrets-scan:
     name: Gitleaks (secrets)
     runs-on: ubuntu-latest
     needs: build-and-test
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout full history
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_CONFIG: 01-secure-ci-node/.security/gitleaks.toml
 
   dep-scan:
-    name: Trivy FS (deps)
+    name: Trivy FS (deps) — ENFORCE
     runs-on: ubuntu-latest
     needs: build-and-test
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Install Trivy
         run: |
           curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-      - name: Trivy filesystem scan (warn-only)
+      - name: Trivy filesystem scan (fail on HIGH/CRITICAL)
         run: trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln --no-progress 01-secure-ci-node
       - name: Trivy SARIF
         run: trivy fs --format sarif --output trivy-fs.sarif --scanners vuln 01-secure-ci-node
@@ -64,30 +74,34 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-fs.sarif
-        continue-on-error: true   # keep pipeline green even if upload has permission issues
+        continue-on-error: true
 
   image-scan:
-    name: Docker build + Trivy image
+    name: Docker build + Trivy image — WARN ONLY
     runs-on: ubuntu-latest
     needs: build-and-test
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Build Docker image
         working-directory: 01-secure-ci-node
         run: docker build -t secure-ci-node:ci .
+
       - name: Install Trivy
         run: |
           curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-      - name: Trivy image scan (warn-only)
-  run: trivy image --exit-code 0 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
 
+      - name: Trivy image scan (warn-only)
+        run: trivy image --exit-code 0 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
 
   sbom:
     name: Syft SBOM (artifact)
     runs-on: ubuntu-latest
     needs: build-and-test
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Install Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
