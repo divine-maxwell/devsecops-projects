@@ -1,0 +1,6 @@
+title = "Basic gitleaks config"
+[allowlist]
+description = "allow common dev noise"
+paths = [
+  "package-lock.json"
+]

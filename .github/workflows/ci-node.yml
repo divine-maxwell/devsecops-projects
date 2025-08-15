@@ -1,0 +1,115 @@
+name: CI — 01 Secure CI Node
+
+on:
+  push:
+    paths:
+      - '01-secure-ci-node/**'
+      - '.github/workflows/ci-node.yml'
+  pull_request:
+    paths:
+      - '01-secure-ci-node/**'
+      - '.github/workflows/ci-node.yml'
+
+concurrency:
+  group: ci-node-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 01-secure-ci-node
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '01-secure-ci-node/package-lock.json'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run smoke test
+        run: npm test
+
+  secrets-scan:
+    name: Gitleaks (secrets)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run gitleaks
+        uses: zricethezav/gitleaks-action@v2
+        with:
+          config-path: 01-secure-ci-node/.security/gitleaks.toml
+          args: "--no-banner --verbose"
+        # Fail the job if secrets are found (default behavior)
+
+  dep-scan:
+    name: Trivy FS (deps)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-db-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            trivy-db-${{ runner.os }}-
+      - name: Trivy filesystem scan (HIGH/CRITICAL fail)
+        run: |
+          curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln --no-progress 01-secure-ci-node
+
+      - name: Trivy SARIF (for code scanning, optional)
+        run: |
+          trivy fs --format sarif --output trivy-fs.sarif --scanners vuln 01-secure-ci-node
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+  image-scan:
+    name: Docker build + Trivy image
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        working-directory: 01-secure-ci-node
+        run: docker build -t secure-ci-node:ci .
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-db-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            trivy-db-${{ runner.os }}-
+      - name: Trivy image scan (HIGH/CRITICAL fail)
+        run: |
+          curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
+
+  sbom:
+    name: Syft SBOM (artifact)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      - name: Generate SBOM (SPDX JSON)
+        run: syft packages 01-secure-ci-node -o spdx-json > sbom.spdx.json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-01-secure-ci-node
+          path: sbom.spdx.json
