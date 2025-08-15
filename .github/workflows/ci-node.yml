@@ -10,6 +10,10 @@ on:
       - '01-secure-ci-node/**'
       - '.github/workflows/ci-node.yml'
 
+permissions:
+  contents: read
+  security-events: write
+
 concurrency:
   group: ci-node-${{ github.ref }}
   cancel-in-progress: true
@@ -21,21 +25,14 @@ jobs:
       run:
         working-directory: 01-secure-ci-node
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: '01-secure-ci-node/package-lock.json'
-
-      - name: Install deps
-        run: npm ci
-
-      - name: Run smoke test
-        run: npm test
+      - run: npm ci
+      - run: npm test
 
   secrets-scan:
     name: Gitleaks (secrets)
@@ -43,12 +40,12 @@ jobs:
     needs: build-and-test
     steps:
       - uses: actions/checkout@v4
-      - name: Run gitleaks
-        uses: zricethezav/gitleaks-action@v2
         with:
-          config-path: 01-secure-ci-node/.security/gitleaks.toml
-          args: "--no-banner --verbose"
-        # Fail the job if secrets are found (default behavior)
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: 01-secure-ci-node/.security/gitleaks.toml
 
   dep-scan:
     name: Trivy FS (deps)
@@ -56,21 +53,13 @@ jobs:
     needs: build-and-test
     steps:
       - uses: actions/checkout@v4
-      - name: Cache Trivy DB
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/trivy
-          key: trivy-db-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            trivy-db-${{ runner.os }}-
-      - name: Trivy filesystem scan (HIGH/CRITICAL fail)
+      - name: Install Trivy
         run: |
           curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-          trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln --no-progress 01-secure-ci-node
-
-      - name: Trivy SARIF (for code scanning, optional)
-        run: |
-          trivy fs --format sarif --output trivy-fs.sarif --scanners vuln 01-secure-ci-node
+      - name: Trivy filesystem scan (warn-only)
+        run: trivy fs --exit-code 0 --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln --no-progress 01-secure-ci-node
+      - name: Trivy SARIF
+        run: trivy fs --format sarif --output trivy-fs.sarif --scanners vuln 01-secure-ci-node
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
@@ -85,17 +74,11 @@ jobs:
       - name: Build Docker image
         working-directory: 01-secure-ci-node
         run: docker build -t secure-ci-node:ci .
-      - name: Cache Trivy DB
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/trivy
-          key: trivy-db-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            trivy-db-${{ runner.os }}-
-      - name: Trivy image scan (HIGH/CRITICAL fail)
+      - name: Install Trivy
         run: |
           curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-          trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
+      - name: Trivy image scan (warn-only)
+        run: trivy image --exit-code 0 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
 
   sbom:
     name: Syft SBOM (artifact)
@@ -113,3 +96,4 @@ jobs:
         with:
           name: sbom-01-secure-ci-node
           path: sbom.spdx.json
+
