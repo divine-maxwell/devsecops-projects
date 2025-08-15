@@ -3,3 +3,5 @@ npm-debug.log*
 .DS_Store
 .git
 .husky
+# DO NOT ignore the lockfile; npm ci needs it
+# package-lock.json
