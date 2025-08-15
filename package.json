@@ -1,0 +1,25 @@
+{
+  "name": "devsecops-projects",
+  "version": "1.0.0",
+  "description": "Projects exploring automation, CI/CD, infrastructure as code with security in mind.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "secrets:scan": "gitleaks detect --no-banner --redact -v -c 01-secure-ci-node/.security/gitleaks.toml"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divine-maxwell/devsecops-projects.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/divine-maxwell/devsecops-projects/issues"
+  },
+  "homepage": "https://github.com/divine-maxwell/devsecops-projects#readme",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

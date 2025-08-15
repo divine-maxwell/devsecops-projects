@@ -1,0 +1,3 @@
+. "$(dirname "$0")/_/husky.sh"
+npm --prefix 01-secure-ci-node test || exit 1
+npm run secrets:scan || exit 1
