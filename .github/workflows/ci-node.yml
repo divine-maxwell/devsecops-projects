@@ -57,7 +57,7 @@ jobs:
         run: |
           curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
       - name: Trivy filesystem scan (warn-only)
-        run: trivy fs --exit-code 0 --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln --no-progress 01-secure-ci-node
+        run: trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln --no-progress 01-secure-ci-node
       - name: Trivy SARIF
         run: trivy fs --format sarif --output trivy-fs.sarif --scanners vuln 01-secure-ci-node
       - name: Upload SARIF
@@ -79,7 +79,7 @@ jobs:
         run: |
           curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
       - name: Trivy image scan (warn-only)
-        run: trivy image --exit-code 0 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
 
   sbom:
     name: Syft SBOM (artifact)
