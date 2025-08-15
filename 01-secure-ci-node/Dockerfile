@@ -3,7 +3,7 @@ FROM node:20-alpine AS deps
 RUN apk --no-cache upgrade
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Stage 2: runtime image with just what we need
 FROM node:20-alpine
