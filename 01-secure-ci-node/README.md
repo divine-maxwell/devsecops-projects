@@ -1,3 +1,5 @@
+![CI Status](https://github.com/divine-maxwell/devsecops-projects/actions/workflows/ci-node.yml/badge.svg)
+
 # 01 — Secure CI for a Node.js API
 
 Beginner DevSecOps project: tiny Node.js API with a secure CI pipeline (secrets scan, dependency scan, container scan, SBOM, and PR checks).
