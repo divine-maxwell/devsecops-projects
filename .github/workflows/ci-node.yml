@@ -64,6 +64,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-fs.sarif
+        continue-on-error: true   # keep pipeline green even if upload has permission issues
 
   image-scan:
     name: Docker build + Trivy image
