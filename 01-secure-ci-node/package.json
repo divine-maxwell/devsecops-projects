@@ -1,0 +1,17 @@
+{
+  "name": "01-secure-ci-node",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+   "start": "node src/index.js",
+  "test": "node -e \"require('http').get('http://localhost:3000/health',res=>{if(res.statusCode===200)process.exit(0);process.exit(1);}).on('error',()=>process.exit(1))\" & sleep 1 && npm run _start-test",
+  "_start-test": "node src/index.js & echo $! > .pid && sleep 1 && curl -sSf http://localhost:3000/health >/dev/null && kill $(cat .pid) && rm .pid"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
