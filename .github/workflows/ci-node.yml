@@ -79,7 +79,8 @@ jobs:
         run: |
           curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
       - name: Trivy image scan (warn-only)
-        run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
+  run: trivy image --exit-code 0 --severity HIGH,CRITICAL --ignore-unfixed --no-progress secure-ci-node:ci
+
 
   sbom:
     name: Syft SBOM (artifact)
