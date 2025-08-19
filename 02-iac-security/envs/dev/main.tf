@@ -4,7 +4,13 @@ terraform {
     aws = { source = "hashicorp/aws", version = "~> 5.0" }
   }
 }
+
 provider "aws" {
-  source      = "../../modules/s3-logs"
- bucket_name = "devsecops-demo-logs-example-dev"
+  region = "us-east-1"
 }
+
+module "s3_logs" {
+  source      = "../../modules/s3-logs"
+  bucket_name = "devsecops-demo-logs-example-dev"
+}
+
