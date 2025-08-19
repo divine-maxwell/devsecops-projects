@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "node -e \"require('http').get('http://localhost:3000/health',res=>{if(res.statusCode===200)process.exit(0);process.exit(1);}).on('error',()=>process.exit(1))\" & sleep 1 && npm run _start-test",
-    "_start-test": "node src/index.js & echo $! > .pid && sleep 1 && curl -sSf http://localhost:3000/health >/dev/null && kill $(cat .pid) && rm .pid"
+    "_start-test": "node src/index.js & echo $! > .pid && sleep 1 && curl -sSf http://localhost:3000/health >/dev/null && kill $(cat .pid) && rm .pid",
+    "lint": "npx eslint src --max-warnings=0"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +17,10 @@
   },
   "overrides": {
     "cross-spawn": "^7.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "eslint": "^9.33.0",
+    "globals": "^16.3.0"
   }
 }
