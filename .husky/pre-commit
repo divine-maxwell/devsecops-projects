@@ -1,5 +1,4 @@
 set -e
-
 npm --prefix 01-secure-ci-node test
-
 npm run secrets:scan
+npm --prefix 01-secure-ci-node run lint
