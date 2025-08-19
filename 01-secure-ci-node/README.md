@@ -20,3 +20,11 @@ npm start
 ```bash
 npm test
 ```
+- ✅ Build & smoke tests (Node 20)
+- ✅ ESLint (fails on lint errors)
+- ✅ Gitleaks (secrets) — enforced
+- ✅ Trivy FS (deps) — **fail on HIGH/CRITICAL**
+- ✅ Trivy Image — warn-only (documented)
+- ✅ Grype Image — warn-only (SARIF → Security tab)
+- ✅ Syft SBOM (artifact on each run)
+- ✅ Terraform + Checkov (IaC) — warn-only (SARIF)
